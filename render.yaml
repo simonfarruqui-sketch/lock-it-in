@@ -1,0 +1,18 @@
+# Render Blueprint for Lock It In.
+# The paid "starter" plan is needed for the disk; without a disk, trip data is wiped on every restart.
+services:
+  - type: web
+    name: lock-it-in
+    runtime: node
+    plan: starter
+    region: ohio
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: lockitin-data
+      mountPath: /var/data
+      sizeGB: 1

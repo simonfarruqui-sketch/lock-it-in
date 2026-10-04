@@ -1,0 +1,11 @@
+run = "npm install && npm start"
+entrypoint = "server.js"
+modules = ["nodejs-20"]
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+[deployment]
+run = ["sh", "-c", "npm install && npm start"]
+deploymentTarget = "reservedvm"

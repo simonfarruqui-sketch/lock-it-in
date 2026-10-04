@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lock It In | Start a trip</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ccircle cx=%2250%22 cy=%2250%22 r=%2246%22 fill=%22%231F9D6B%22/%3E%3Cpath d=%22M28 52l15 15 30-32%22 stroke=%22white%22 stroke-width=%2211%22 fill=%22none%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22/%3E%3C/svg%3E">
+<meta name="theme-color" content="#DCE8F7">
+<meta name="description" content="All-or-nothing trip deposits. Everyone pays by the deadline, or the trip is off and everyone is refunded.">
+<meta property="og:title" content="Lock It In">
+<meta property="og:description" content="Everyone's in, or nobody is. All-or-nothing trip deposits for your group chat.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<main>
+  <div class="brand"><b>Lock It In</b><span><a href="/t/demo">Demo trip</a> &middot; <a href="/t/demo?key=demo-organizer">Demo organizer view</a></span></div>
+  <section class="hero">
+    <h1>Everyone&rsquo;s in, or nobody is.</h1>
+    <p>Set a deposit and a deadline. If every friend pays by the deadline, the trip is booked. If even one seat is empty, the trip is off and everyone gets their money back.</p>
+  </section>
+
+  <section class="card" id="mine" hidden>
+    <h2>Your trips on this device</h2>
+    <p class="note">Organizer links you created in this browser. Keep a copy somewhere safe too.</p>
+    <ul class="steps" id="mineList"></ul>
+  </section>
+
+  <form class="card" id="create" novalidate>
+    <h2>Start a trip</h2>
+    <label for="name">Trip name</label>
+    <input id="name" placeholder="Montreal weekend" required maxlength="60">
+    <div class="grid2">
+      <div><label for="destination">Where</label><input id="destination" placeholder="Montreal, QC" maxlength="60"></div>
+      <div><label for="dates">When</label><input id="dates" placeholder="Nov 13 to 15" maxlength="40"></div>
+    </div>
+    <div class="grid2">
+      <div><label for="deposit">Deposit per person ($)</label><input id="deposit" type="number" min="1" step="1" value="75" required></div>
+      <div><label for="hours">Deadline</label>
+        <select id="hours">
+          <option value="24">24 hours</option>
+          <option value="48">48 hours</option>
+          <option value="72" selected>72 hours</option>
+          <option value="168">1 week</option>
+        </select></div>
+    </div>
+    <label for="covers">What the deposit covers</label>
+    <input id="covers" placeholder="Holds our Airbnb. Booked the minute everyone is in." maxlength="140">
+
+    <fieldset>
+      <legend>Who&rsquo;s going</legend>
+      <label for="organizerName">Your name (you hold a seat too)</label>
+      <input id="organizerName" placeholder="Maya" required maxlength="30">
+      <label for="friends">Your friends, one per line</label>
+      <textarea id="friends" placeholder="Jess&#10;Omar&#10;Priya&#10;Dev&#10;Lauren"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>How friends can pay you</legend>
+      <p class="note">Fill in any you use. Friends pick whichever is easiest for them. Lock It In never holds the money.</p>
+      <div class="grid2">
+        <div><label for="m-venmo">Venmo username</label><input id="m-venmo" placeholder="maya-chen"></div>
+        <div><label for="m-cashapp">Cash App $cashtag</label><input id="m-cashapp" placeholder="mayachen"></div>
+        <div><label for="m-paypal">PayPal.me name</label><input id="m-paypal" placeholder="mayachen"></div>
+        <div><label for="m-zelle">Zelle email or phone</label><input id="m-zelle" placeholder="maya@email.com"></div>
+        <div><label for="m-applecash">Apple Cash phone</label><input id="m-applecash" placeholder="(555) 555-0100"></div>
+        <div><label for="m-cash" style="margin-top:12px">In person</label>
+          <label style="display:flex;gap:8px;align-items:center;color:var(--ink);margin:0;padding:11px 0"><input id="m-cash" type="checkbox" style="width:auto"> Accept cash</label></div>
+      </div>
+    </fieldset>
+
+    <button class="btn" type="submit">Create the trip and start the clock</button>
+    <div class="error" id="err" role="alert"></div>
+  </form>
+
+  <section class="card" id="made" hidden>
+    <h2>Your trip is live</h2>
+    <p>The clock is running. Send the friend link to the group chat. Keep the organizer link to yourself, since it lets you confirm deposits.</p>
+    <label for="friendLink">Friend link</label>
+    <div class="copyrow"><code id="friendLink"></code><button class="btn small" data-copy="friendLink">Copy</button></div>
+    <label for="orgLink">Organizer link (private)</label>
+    <div class="copyrow"><code id="orgLink"></code><button class="btn small" data-copy="orgLink">Copy</button></div>
+    <a class="btn" id="goOrg" href="#">Open my organizer view</a>
+  </section>
+  <footer>Lock It In never touches your money. Friends pay you directly, and you confirm each deposit.</footer>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<script>
+(function(){
+  var f = document.getElementById('create');
+  function v(id){ var el = document.getElementById(id); return el.type === 'checkbox' ? el.checked : el.value.trim(); }
+  function toast(t){ var el = document.getElementById('toast'); el.textContent = t; el.classList.add('show'); setTimeout(function(){ el.classList.remove('show'); }, 1800); }
+  function copy(text){
+    if (navigator.clipboard) return navigator.clipboard.writeText(text).then(function(){ toast('Copied'); }, function(){ toast('Select the link and copy it'); });
+    toast('Select the link and copy it');
+  }
+  var STORE = 'lii:mytrips';
+  function mine(){ try { return JSON.parse(localStorage.getItem(STORE) || '[]'); } catch (e) { return []; } }
+  function remember(t){ try { var l = mine().filter(function(x){ return x.id !== t.id; }); l.unshift(t); localStorage.setItem(STORE, JSON.stringify(l.slice(0, 20))); } catch (e) {} }
+  function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+  (function showMine(){
+    var l = mine(); if (!l.length) return;
+    document.getElementById('mineList').innerHTML = l.map(function(t){
+      return '<li><a href="/t/' + encodeURIComponent(t.id) + '?key=' + encodeURIComponent(t.key) + '">' + esc(t.name || t.id) + '</a></li>';
+    }).join('');
+    document.getElementById('mine').hidden = false;
+  })();
+  f.addEventListener('submit', function(e){
+    var btn = f.querySelector('button[type=submit]'); if (btn.disabled) { e.preventDefault(); return; }
+    e.preventDefault();
+    var err = document.getElementById('err'); err.textContent = '';
+    var body = {
+      name: v('name'), destination: v('destination'), dates: v('dates'), deposit: v('deposit'), hours: v('hours'), covers: v('covers'),
+      organizerName: v('organizerName'), friends: v('friends'),
+      methods: { venmo: v('m-venmo'), cashapp: v('m-cashapp'), paypal: v('m-paypal'), zelle: v('m-zelle'), applecash: v('m-applecash'), cash: v('m-cash') }
+    };
+    btn.disabled = true;
+    fetch('/api/trips', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) })
+      .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, j: j }; }); })
+      .then(function(res){
+        btn.disabled = false;
+        if (!res.ok) { err.textContent = res.j.error || 'Something went wrong. Try again.'; return; }
+        var base = location.origin + '/t/' + res.j.id;
+        document.getElementById('friendLink').textContent = base;
+        document.getElementById('orgLink').textContent = base + '?key=' + res.j.key;
+        document.getElementById('goOrg').href = base + '?key=' + res.j.key;
+        remember({ id: res.j.id, key: res.j.key, name: body.name, at: Date.now() });
+        f.hidden = true; document.getElementById('mine').hidden = true; document.getElementById('made').hidden = false; window.scrollTo(0,0);
+      })
+      .catch(function(){ btn.disabled = false; err.textContent = 'Could not reach the server. Check your connection and try again.'; });
+  });
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('[data-copy]'); if (!b) return;
+    e.preventDefault(); copy(document.getElementById(b.getAttribute('data-copy')).textContent);
+  });
+})();
+</script>
+</body>
+</html>
